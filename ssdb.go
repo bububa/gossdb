@@ -7,9 +7,14 @@ import (
 	"strconv"
 )
 
+const (
+	MAX_RETRIES = 3
+)
+
 type Client struct {
 	sock     *net.TCPConn
 	recv_buf bytes.Buffer
+	addr     *net.TCPAddr
 }
 
 type KVPair struct {
@@ -32,20 +37,41 @@ func Connect(ip string, port int) (*Client, error) {
 	}
 	var c Client
 	c.sock = sock
+	c.addr = addr
 	return &c, nil
 }
 
-func (c *Client) Do(args ...interface{}) ([]string, error) {
+func (c *Client) Reconnect() error {
+	c.Close()
+	sock, err := net.DialTCP("tcp", nil, c.addr)
+	if err != nil {
+		return err
+	}
+	c.sock = sock
+	return nil
+}
+
+func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 	err := c.send(args)
 	if err != nil {
+		if retries < MAX_RETRIES {
+			retries++
+			c.Reconnect()
+			return c.Do(retries, args)
+		}
 		return nil, err
 	}
 	resp, err := c.recv()
+	if err != nil && retries < MAX_RETRIES {
+		retries++
+		c.Reconnect()
+		return c.Do(retries, args)
+	}
 	return resp, err
 }
 
 func (c *Client) Set(key string, val string) (bool, error) {
-	resp, err := c.Do("set", key, val)
+	resp, err := c.Do(0, "set", key, val)
 	if err != nil {
 		return false, err
 	}
@@ -56,7 +82,7 @@ func (c *Client) Set(key string, val string) (bool, error) {
 }
 
 func (c *Client) Setx(key string, val string, ttl int32) (bool, error) {
-	resp, err := c.Do("setx", key, val, ttl)
+	resp, err := c.Do(0, "setx", key, val, ttl)
 	if err != nil {
 		return false, err
 	}
@@ -67,7 +93,7 @@ func (c *Client) Setx(key string, val string, ttl int32) (bool, error) {
 }
 
 func (c *Client) Setnx(key string, val string) (bool, error) {
-	resp, err := c.Do("setnx", key, val)
+	resp, err := c.Do(0, "setnx", key, val)
 	if err != nil {
 		return false, err
 	}
@@ -79,7 +105,7 @@ func (c *Client) Setnx(key string, val string) (bool, error) {
 
 // TODO: Will somebody write addition semantic methods?
 func (c *Client) Get(key string) (interface{}, error) {
-	resp, err := c.Do("get", key)
+	resp, err := c.Do(0, "get", key)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +119,7 @@ func (c *Client) Get(key string) (interface{}, error) {
 }
 
 func (c *Client) Getset(key string) (interface{}, error) {
-	resp, err := c.Do("getset", key)
+	resp, err := c.Do(0, "getset", key)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +133,7 @@ func (c *Client) Getset(key string) (interface{}, error) {
 }
 
 func (c *Client) Del(key string) (bool, error) {
-	resp, err := c.Do("del", key)
+	resp, err := c.Do(0, "del", key)
 	if err != nil {
 		return false, err
 	}
@@ -124,7 +150,7 @@ func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
 		args = append(args, pair.k)
 		args = append(args, pair.v)
 	}
-	resp, err := c.Do(args...)
+	resp, err := c.Do(0, args...)
 	if err != nil {
 		return false, err
 	}
@@ -140,7 +166,7 @@ func (c *Client) MultiGet(ks ...string) ([]*KVPair, error) {
 	for _, k := range ks {
 		args = append(args, k)
 	}
-	resp, err := c.Do(args...)
+	resp, err := c.Do(0, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +190,7 @@ func (c *Client) MultiDel(ks ...string) (bool, error) {
 	for _, k := range ks {
 		args = append(args, k)
 	}
-	resp, err := c.Do(args...)
+	resp, err := c.Do(0, args...)
 	if err != nil {
 		return false, err
 	}
@@ -175,7 +201,7 @@ func (c *Client) MultiDel(ks ...string) (bool, error) {
 }
 
 func (c *Client) Exists(key string) (bool, error) {
-	resp, err := c.Do("exists", key)
+	resp, err := c.Do(0, "exists", key)
 	if err != nil {
 		return false, err
 	}
@@ -186,7 +212,7 @@ func (c *Client) Exists(key string) (bool, error) {
 }
 
 func (c *Client) Incr(key string, num int) (int64, error) {
-	resp, err := c.Do("incr", key, num)
+	resp, err := c.Do(0, "incr", key, num)
 	if err != nil {
 		return 0, err
 	}
@@ -197,7 +223,7 @@ func (c *Client) Incr(key string, num int) (int64, error) {
 }
 
 func (c *Client) HSet(name string, key string, val string) (bool, error) {
-	resp, err := c.Do("hset", name, key, val)
+	resp, err := c.Do(0, "hset", name, key, val)
 	if err != nil {
 		return false, err
 	}
@@ -208,7 +234,7 @@ func (c *Client) HSet(name string, key string, val string) (bool, error) {
 }
 
 func (c *Client) HGet(name string, key string) (interface{}, error) {
-	resp, err := c.Do("hget", name, key)
+	resp, err := c.Do(0, "hget", name, key)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +248,7 @@ func (c *Client) HGet(name string, key string) (interface{}, error) {
 }
 
 func (c *Client) HDel(name string, key string) (bool, error) {
-	resp, err := c.Do("hdel", name, key)
+	resp, err := c.Do(0, "hdel", name, key)
 	if err != nil {
 		return false, err
 	}
@@ -233,7 +259,7 @@ func (c *Client) HDel(name string, key string) (bool, error) {
 }
 
 func (c *Client) HIncr(name string, key string, num int) (int64, error) {
-	resp, err := c.Do("hincr", name, key, num)
+	resp, err := c.Do(0, "hincr", name, key, num)
 	if err != nil {
 		return 0, err
 	}
@@ -244,7 +270,7 @@ func (c *Client) HIncr(name string, key string, num int) (int64, error) {
 }
 
 func (c *Client) HExists(name string, key string) (bool, error) {
-	resp, err := c.Do("hexists", key)
+	resp, err := c.Do(0, "hexists", key)
 	if err != nil {
 		return false, err
 	}

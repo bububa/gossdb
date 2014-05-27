@@ -12,6 +12,15 @@ type Client struct {
 	recv_buf bytes.Buffer
 }
 
+type KVPair struct {
+	k string
+	v interface{}
+}
+
+func NewKVPair(k string, v interface{}) *KVPair {
+	return &KVPair{k: k, v: v}
+}
+
 func Connect(ip string, port int) (*Client, error) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", ip, port))
 	if err != nil {
@@ -108,14 +117,70 @@ func (c *Client) Del(key string) (bool, error) {
 	return false, fmt.Errorf("bad response")
 }
 
+func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
+	var args []interface{}
+	args = append(args, "multi_set")
+	for _, pair := range pairs {
+		args = append(args, pair.k)
+		args = append(args, pair.v)
+	}
+	resp, err := c.Do(args...)
+	if err != nil {
+		return false, err
+	}
+	for _, res := range resp {
+		fmt.Println(res)
+	}
+	if len(resp) == 2 && resp[0] == "ok" {
+		return true, nil
+	}
+	return false, fmt.Errorf("bad response")
+}
+
+func (c *Client) MultiGet(ks ...string) ([]*KVPair, error) {
+	var args []interface{}
+	args = append(args, "multi_get")
+	for _, k := range ks {
+		args = append(args, k)
+	}
+	resp, err := c.Do(args...)
+	if err != nil {
+		return nil, err
+	}
+	var pairs []*KVPair
+	for i := 1; i < len(resp); i += 2 {
+		fmt.Printf("K:%s, V:%s\n", resp[i], resp[i+1])
+		pairs = append(pairs, NewKVPair(resp[i], resp[i+1]))
+	}
+	if len(resp) >= 3 && resp[0] == "ok" {
+		return pairs, nil
+	}
+	if resp[0] == "not_found" {
+		return nil, nil
+	}
+	return nil, fmt.Errorf("bad response")
+}
+
+func (c *Client) MultiDel(ks ...string) (bool, error) {
+	var args []interface{}
+	args = append(args, "multi_del")
+	for _, k := range ks {
+		args = append(args, k)
+	}
+	resp, err := c.Do(args...)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) >= 1 && resp[0] == "ok" {
+		return true, nil
+	}
+	return false, fmt.Errorf("bad response")
+}
+
 func (c *Client) Exists(key string) (bool, error) {
 	resp, err := c.Do("exists", key)
 	if err != nil {
 		return false, err
-	}
-
-	for _, res := range resp {
-		fmt.Println(res)
 	}
 	if len(resp) >= 1 && resp[0] == "ok" {
 		return true, nil
@@ -132,6 +197,67 @@ func (c *Client) Incr(key string, num int) (int64, error) {
 		return strconv.ParseInt(resp[1], 10, 64)
 	}
 	return 0, fmt.Errorf("bad response")
+}
+
+func (c *Client) HSet(name string, key string, val string) (bool, error) {
+	resp, err := c.Do("hset", name, key, val)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 2 && resp[0] == "ok" {
+		return true, nil
+	}
+	return false, fmt.Errorf("bad response")
+}
+
+func (c *Client) HGet(name string, key string) (interface{}, error) {
+	resp, err := c.Do("hget", name, key)
+	if err != nil {
+		return nil, err
+	}
+	for _, res := range resp {
+		fmt.Println(res)
+	}
+	if len(resp) == 2 && resp[0] == "ok" {
+		return resp[1], nil
+	}
+	if resp[0] == "not_found" {
+		return nil, nil
+	}
+	return nil, fmt.Errorf("bad response")
+}
+
+func (c *Client) HDel(name string, key string) (bool, error) {
+	resp, err := c.Do("hdel", name, key)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) >= 1 && resp[0] == "ok" {
+		return true, nil
+	}
+	return false, fmt.Errorf("bad response")
+}
+
+func (c *Client) HIncr(name string, key string, num int) (int64, error) {
+	resp, err := c.Do("hincr", name, key, num)
+	if err != nil {
+		return 0, err
+	}
+	if len(resp) == 2 && resp[0] == "ok" {
+		return strconv.ParseInt(resp[1], 10, 64)
+	}
+	return 0, fmt.Errorf("bad response")
+}
+
+func (c *Client) HExists(name string, key string) (bool, error) {
+	resp, err := c.Do("hexists", key)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) >= 1 && resp[0] == "ok" {
+		return true, nil
+	}
+	return false, fmt.Errorf("bad response")
 }
 
 func (c *Client) send(args []interface{}) error {
@@ -164,7 +290,7 @@ func (c *Client) send(args []interface{}) error {
 		case nil:
 			s = ""
 		default:
-			return fmt.Errorf("bad arguments")
+			return fmt.Errorf("bad response")
 		}
 		buf.WriteString(fmt.Sprintf("%d", len(s)))
 		buf.WriteByte('\n')
@@ -172,6 +298,7 @@ func (c *Client) send(args []interface{}) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteByte('\n')
+	fmt.Printf("%s\n", string(buf.Bytes()))
 	_, err := c.sock.Write(buf.Bytes())
 	return err
 }

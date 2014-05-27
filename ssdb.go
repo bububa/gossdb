@@ -128,9 +128,6 @@ func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, res := range resp {
-		fmt.Println(res)
-	}
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
@@ -215,9 +212,6 @@ func (c *Client) HGet(name string, key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, res := range resp {
-		fmt.Println(res)
-	}
 	if len(resp) == 2 && resp[0] == "ok" {
 		return resp[1], nil
 	}
@@ -298,7 +292,6 @@ func (c *Client) send(args []interface{}) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteByte('\n')
-	fmt.Printf("%s\n", string(buf.Bytes()))
 	_, err := c.sock.Write(buf.Bytes())
 	return err
 }

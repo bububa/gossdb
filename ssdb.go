@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 )
 
 const (
 	MAX_RETRIES = 3
+	TIMEOUT     = time.Duration(time.Second * 15)
+	KEEPALIVE   = true
 )
 
 type Client struct {
@@ -35,6 +38,7 @@ func Connect(ip string, port int) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	sock.SetKeepAlive(KEEPALIVE)
 	var c Client
 	c.sock = sock
 	c.addr = addr
@@ -318,12 +322,14 @@ func (c *Client) send(args []interface{}) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteByte('\n')
+	c.sock.SetWriteDeadline(time.Now().Add(TIMEOUT))
 	_, err := c.sock.Write(buf.Bytes())
 	return err
 }
 
 func (c *Client) recv() ([]string, error) {
 	var tmp [8192]byte
+	c.sock.SetReadDeadline(time.Now().Add(TIMEOUT))
 	for {
 		n, err := c.sock.Read(tmp[0:])
 		if err != nil {

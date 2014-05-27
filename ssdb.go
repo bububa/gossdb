@@ -82,7 +82,7 @@ func (c *Client) Set(key string, val string) (bool, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) Setx(key string, val string, ttl int32) (bool, error) {
@@ -93,7 +93,7 @@ func (c *Client) Setx(key string, val string, ttl int32) (bool, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) Setnx(key string, val string) (bool, error) {
@@ -104,7 +104,7 @@ func (c *Client) Setnx(key string, val string) (bool, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 // TODO: Will somebody write addition semantic methods?
@@ -119,7 +119,7 @@ func (c *Client) Get(key string) (interface{}, error) {
 	if resp[0] == "not_found" {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("bad response")
+	return nil, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) Getset(key string) (interface{}, error) {
@@ -133,7 +133,7 @@ func (c *Client) Getset(key string) (interface{}, error) {
 	if resp[0] == "not_found" {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("bad response")
+	return nil, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) Del(key string) (bool, error) {
@@ -144,7 +144,7 @@ func (c *Client) Del(key string) (bool, error) {
 	if len(resp) >= 1 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
@@ -161,7 +161,7 @@ func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) MultiGet(ks ...string) ([]*KVPair, error) {
@@ -185,7 +185,7 @@ func (c *Client) MultiGet(ks ...string) ([]*KVPair, error) {
 	if resp[0] == "not_found" {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("bad response")
+	return nil, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) MultiDel(ks ...string) (bool, error) {
@@ -201,7 +201,7 @@ func (c *Client) MultiDel(ks ...string) (bool, error) {
 	if len(resp) >= 1 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) Exists(key string) (bool, error) {
@@ -223,7 +223,7 @@ func (c *Client) Incr(key string, num int) (int64, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return strconv.ParseInt(resp[1], 10, 64)
 	}
-	return 0, fmt.Errorf("bad response")
+	return 0, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) HSet(name string, key string, val string) (bool, error) {
@@ -234,7 +234,7 @@ func (c *Client) HSet(name string, key string, val string) (bool, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) HGet(name string, key string) (interface{}, error) {
@@ -248,7 +248,7 @@ func (c *Client) HGet(name string, key string) (interface{}, error) {
 	if resp[0] == "not_found" {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("bad response")
+	return nil, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) HDel(name string, key string) (bool, error) {
@@ -259,7 +259,7 @@ func (c *Client) HDel(name string, key string) (bool, error) {
 	if len(resp) >= 1 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) HIncr(name string, key string, num int) (int64, error) {
@@ -270,7 +270,7 @@ func (c *Client) HIncr(name string, key string, num int) (int64, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return strconv.ParseInt(resp[1], 10, 64)
 	}
-	return 0, fmt.Errorf("bad response")
+	return 0, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) HExists(name string, key string) (bool, error) {
@@ -281,7 +281,7 @@ func (c *Client) HExists(name string, key string) (bool, error) {
 	if len(resp) >= 1 && resp[0] == "ok" {
 		return true, nil
 	}
-	return false, fmt.Errorf("bad response")
+	return false, fmt.Errorf("bad response:%v", resp)
 }
 
 func (c *Client) send(args []interface{}) error {

@@ -20,6 +20,7 @@ func NewCluster(shardsAddr []string) (*Cluster, error) {
 		}
 		s, err := Connect(h[0], int(port))
 		if err != nil {
+			c.Close()
 			return nil, err
 		}
 		c.shards = append(c.shards, s)

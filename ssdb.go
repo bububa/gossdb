@@ -62,7 +62,7 @@ func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 		if !strings.Contains(fmt.Sprintf("%s", err), "bad request") && retries < MAX_RETRIES {
 			retries++
 			c.Reconnect()
-			return c.Do(retries, args)
+			return c.Do(retries, args...)
 		}
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 	if err != nil && retries < MAX_RETRIES {
 		retries++
 		c.Reconnect()
-		return c.Do(retries, args)
+		return c.Do(retries, args...)
 	}
 	return resp, err
 }

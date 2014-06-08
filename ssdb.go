@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -58,7 +59,7 @@ func (c *Client) Reconnect() error {
 func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 	err := c.send(args)
 	if err != nil {
-		if retries < MAX_RETRIES {
+		if !strings.Contains(fmt.Sprintf("%s", err), "bad request") && retries < MAX_RETRIES {
 			retries++
 			c.Reconnect()
 			return c.Do(retries, args)

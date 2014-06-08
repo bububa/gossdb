@@ -314,7 +314,7 @@ func (c *Client) send(args []interface{}) error {
 		case nil:
 			s = ""
 		default:
-			return fmt.Errorf("bad response")
+			return fmt.Errorf("bad request:%v", arg)
 		}
 		buf.WriteString(fmt.Sprintf("%d", len(s)))
 		buf.WriteByte('\n')

@@ -67,7 +67,7 @@ func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 		return nil, err
 	}
 	resp, err := c.recv()
-	if err != nil && retries < MAX_RETRIES {
+	if (len(resp) == 0 || err != nil) && retries < MAX_RETRIES {
 		retries++
 		c.Reconnect()
 		return c.Do(retries, args...)

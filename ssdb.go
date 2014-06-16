@@ -117,7 +117,7 @@ func (c *Client) Get(key string) (interface{}, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return resp[1], nil
 	}
-	if resp[0] == "not_found" {
+	if len(resp) == 0 || resp[0] == "not_found" {
 		return nil, nil
 	}
 	return nil, fmt.Errorf("bad response:%v", resp)
@@ -131,7 +131,7 @@ func (c *Client) Getset(key string) (interface{}, error) {
 	if len(resp) == 2 && resp[0] == "ok" {
 		return resp[1], nil
 	}
-	if resp[0] == "not_found" {
+	if len(resp) == 0 || resp[0] == "not_found" {
 		return nil, nil
 	}
 	return nil, fmt.Errorf("bad response:%v", resp)
@@ -183,7 +183,7 @@ func (c *Client) MultiGet(ks ...string) ([]*KVPair, error) {
 	if len(resp) >= 3 && resp[0] == "ok" {
 		return pairs, nil
 	}
-	if resp[0] == "not_found" {
+	if len(resp) == 0 || resp[0] == "not_found" {
 		return nil, nil
 	}
 	return nil, fmt.Errorf("bad response:%v", resp)

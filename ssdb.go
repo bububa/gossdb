@@ -67,7 +67,7 @@ func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 		return nil, err
 	}
 	resp, err := c.recv()
-	if (len(resp) == 0 || err != nil) && retries < MAX_RETRIES {
+	if err != nil && retries < MAX_RETRIES {
 		retries++
 		c.Reconnect()
 		return c.Do(retries, args...)
@@ -296,7 +296,8 @@ func (c *Client) send(args []interface{}) error {
 			s = string(arg)
 		case []string:
 			for _, s := range arg {
-				buf.WriteString(fmt.Sprintf("%d", len(s)))
+				p := strconv.Itoa(len(s))
+				buf.WriteString(p)
 				buf.WriteByte('\n')
 				buf.WriteString(s)
 				buf.WriteByte('\n')
@@ -317,7 +318,8 @@ func (c *Client) send(args []interface{}) error {
 		default:
 			return fmt.Errorf("bad request:%v", arg)
 		}
-		buf.WriteString(fmt.Sprintf("%d", len(s)))
+		p := strconv.Itoa(len(s))
+		buf.WriteString(p)
 		buf.WriteByte('\n')
 		buf.WriteString(s)
 		buf.WriteByte('\n')
@@ -329,7 +331,7 @@ func (c *Client) send(args []interface{}) error {
 }
 
 func (c *Client) recv() ([]string, error) {
-	var tmp [8192]byte
+	var tmp [1024 * 128]byte
 	c.sock.SetReadDeadline(time.Now().Add(TIMEOUT))
 	for {
 		n, err := c.sock.Read(tmp[0:])
@@ -338,6 +340,9 @@ func (c *Client) recv() ([]string, error) {
 		}
 		c.recv_buf.Write(tmp[0:n])
 		resp := c.parse()
+		if len(resp) == 0 {
+			fmt.Printf("SSDB BUF:%s", c.recv_buf.String())
+		}
 		if resp == nil || len(resp) > 0 {
 			return resp, nil
 		}
@@ -347,6 +352,17 @@ func (c *Client) recv() ([]string, error) {
 
 func (c *Client) parse() []string {
 	resp := []string{}
+	sl := strings.Split(c.recv_buf.String(), "\n")
+	for i, v := range sl {
+		if v == "" {
+			break
+		}
+
+		if i%2 == 1 {
+			resp = append(resp, v)
+		}
+	}
+	return resp
 	buf := c.recv_buf.Bytes()
 	var idx, offset int
 	idx = 0

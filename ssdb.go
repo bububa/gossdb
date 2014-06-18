@@ -80,7 +80,7 @@ func (c *Client) Set(key string, val string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -91,7 +91,7 @@ func (c *Client) Setx(key string, val string, ttl int32) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -102,7 +102,7 @@ func (c *Client) Setnx(key string, val string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -142,7 +142,7 @@ func (c *Client) Del(key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) >= 1 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -159,7 +159,7 @@ func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -199,7 +199,7 @@ func (c *Client) MultiDel(ks ...string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) >= 1 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -210,7 +210,7 @@ func (c *Client) Exists(key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) >= 1 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response")
@@ -232,7 +232,7 @@ func (c *Client) HSet(name string, key string, val string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -257,7 +257,7 @@ func (c *Client) HDel(name string, key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) >= 1 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)
@@ -279,7 +279,7 @@ func (c *Client) HExists(name string, key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(resp) >= 1 && resp[0] == "ok" {
+	if len(resp) > 0 && resp[0] == "ok" {
 		return true, nil
 	}
 	return false, fmt.Errorf("bad response:%v", resp)

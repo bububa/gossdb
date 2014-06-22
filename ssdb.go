@@ -53,6 +53,7 @@ func (c *Client) Reconnect() error {
 	if err != nil {
 		return err
 	}
+	sock.SetKeepAlive(KEEPALIVE)
 	c.sock = sock
 	c.recv_buf = []byte{}
 	return nil

@@ -17,7 +17,7 @@ const (
 
 type Client struct {
 	sock     *net.TCPConn
-	recv_buf bytes.Buffer
+	recv_buf []byte
 	addr     *net.TCPAddr
 }
 
@@ -43,6 +43,7 @@ func Connect(ip string, port int) (*Client, error) {
 	var c Client
 	c.sock = sock
 	c.addr = addr
+	c.recv_buf = []byte{}
 	return &c, nil
 }
 
@@ -53,6 +54,7 @@ func (c *Client) Reconnect() error {
 		return err
 	}
 	c.sock = sock
+	c.recv_buf = []byte{}
 	return nil
 }
 
@@ -330,29 +332,49 @@ func (c *Client) send(args []interface{}) error {
 	return err
 }
 
+func (c *Client) recv_one() []string {
+	var last byte
+
+	n := len(c.recv_buf)
+	for i := 0; i < n; i++ {
+		if last == '\n' && c.recv_buf[i] == '\n' {
+			str := c.parse(c.recv_buf[:i+1])
+			c.recv_buf = c.recv_buf[i+1:]
+			return str
+		}
+
+		last = c.recv_buf[i]
+	}
+
+	return nil
+}
+
 func (c *Client) recv() ([]string, error) {
-	var tmp [1024 * 128]byte
 	c.sock.SetReadDeadline(time.Now().Add(TIMEOUT))
 	for {
-		n, err := c.sock.Read(tmp[0:])
-		if err != nil {
-			return nil, err
-		}
-		c.recv_buf.Write(tmp[0:n])
-		resp := c.parse()
-		if len(resp) == 0 {
-			fmt.Printf("SSDB BUF:%s", c.recv_buf.String())
-		}
-		if resp == nil || len(resp) > 0 {
-			return resp, nil
+		ret := c.recv_one()
+		if ret == nil {
+			var tmp [1024 * 128]byte
+			n, err := c.sock.Read(tmp[0:])
+			if err != nil {
+				return nil, err
+			}
+			c.recv_buf = append(c.recv_buf, tmp[0:n]...)
+			/*c.recv_buf.Write(tmp[0:n])
+			resp := c.parse()
+			if resp == nil || len(resp) > 0 {
+				return resp, nil
+			}*/
+		} else {
+			return ret, nil
 		}
 	}
 	return nil, nil
 }
 
-func (c *Client) parse() []string {
+func (c *Client) parse(result []byte) []string {
 	resp := []string{}
-	sl := strings.Split(c.recv_buf.String(), "\n")
+	sl := strings.Split(string(result), "\n")
 	for i, v := range sl {
 		if v == "" {
 			break
@@ -363,42 +385,42 @@ func (c *Client) parse() []string {
 		}
 	}
 	return resp
-	buf := c.recv_buf.Bytes()
-	var idx, offset int
-	idx = 0
-	offset = 0
+	/*	buf := c.recv_buf.Bytes()
+		var idx, offset int
+		idx = 0
+		offset = 0
 
-	for {
-		idx = bytes.IndexByte(buf[offset:], '\n')
-		if idx == -1 {
-			break
-		}
-		p := buf[offset : offset+idx]
-		offset += idx + 1
-		//fmt.Printf("> [%s]\n", p);
-		if len(p) == 0 || (len(p) == 1 && p[0] == '\r') {
-			if len(resp) == 0 {
-				continue
-			} else {
-				c.recv_buf.Next(offset)
-				return resp
+		for {
+			idx = bytes.IndexByte(buf[offset:], '\n')
+			if idx == -1 {
+				break
 			}
+			p := buf[offset : offset+idx]
+			offset += idx + 1
+			//fmt.Printf("> [%s]\n", p);
+			if len(p) == 0 || (len(p) == 1 && p[0] == '\r') {
+				if len(resp) == 0 {
+					continue
+				} else {
+					c.recv_buf.Next(offset)
+					return resp
+				}
+			}
+
+			size, err := strconv.Atoi(string(p))
+			if err != nil || size < 0 {
+				return nil
+			}
+			if offset+size >= c.recv_buf.Len() {
+				break
+			}
+
+			v := buf[offset : offset+size]
+			resp = append(resp, string(v))
+			offset += size + 1
 		}
 
-		size, err := strconv.Atoi(string(p))
-		if err != nil || size < 0 {
-			return nil
-		}
-		if offset+size >= c.recv_buf.Len() {
-			break
-		}
-
-		v := buf[offset : offset+size]
-		resp = append(resp, string(v))
-		offset += size + 1
-	}
-
-	return []string{}
+		return []string{}*/
 }
 
 // Close The Client Connection

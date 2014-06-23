@@ -39,7 +39,7 @@ func Connect(ip string, port int) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	sock.SetKeepAlive(KEEPALIVE)
+	//sock.SetKeepAlive(KEEPALIVE)
 	var c Client
 	c.sock = sock
 	c.addr = addr

@@ -50,6 +50,7 @@ func Connect(ip string, port int) (*Client, error) {
 	var c Client
 	c.sock = sock
 	c.addr = addr
+	c.mutex = new(sync.Mutex)
 	return &c, nil
 }
 

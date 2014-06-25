@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,7 @@ type Client struct {
 	sock     *net.TCPConn
 	recv_buf bytes.Buffer
 	addr     *net.TCPAddr
+	mutex    *sync.Mutex
 }
 
 type KVPair struct {
@@ -51,6 +53,14 @@ func Connect(ip string, port int) (*Client, error) {
 	return &c, nil
 }
 
+func (c *Client) lock() {
+	c.mutex.Lock()
+}
+
+func (c *Client) unlock() {
+	c.mutex.Unlock()
+}
+
 func (c *Client) Reconnect() error {
 	c.Close()
 	sock, err := net.DialTCP("tcp", nil, c.addr)
@@ -58,11 +68,15 @@ func (c *Client) Reconnect() error {
 		return err
 	}
 	c.sock = sock
-	c.recv_buf.Reset()
+	if c.recv_buf.Len() > 0 {
+		c.recv_buf.Reset()
+	}
 	return nil
 }
 
 func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
+	c.lock()
+	defer c.unlock()
 	err := c.send(args)
 	if err != nil {
 		if !strings.Contains(fmt.Sprintf("%s", err), "bad request") && retries < MAX_RETRIES {

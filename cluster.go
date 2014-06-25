@@ -112,24 +112,26 @@ func (c *Cluster) MultiGet(ks ...string) []*KVPair {
 	return ps
 }
 
-func (c *Cluster) MultiSet(ps ...*KVPair) []string {
+func (c *Cluster) MultiSet(ps ...*KVPair) (ks []string, err error) {
 	if len(ps) == 0 {
-		return nil
+		return nil, nil
 	}
 	parts := c.locatePairs(ps...)
 	ch := make(chan int, len(parts))
 	for i, part := range parts {
 		go func(idx int, pairs []*KVPair, shard *Client) {
-			success, err := shard.MultiSet(pairs...)
-			if err == nil && success {
+			success, err2 := shard.MultiSet(pairs...)
+			if err2 == nil && success {
 				ch <- idx
 			} else {
+				if err2 != nil {
+					err = err2
+				}
 				ch <- -1
 			}
 		}(i, part, c.shards[i])
 	}
 
-	var ks []string
 	for i := 0; i < len(parts); i++ {
 		if id := <-ch; id >= 0 {
 			for _, p := range parts[id] {
@@ -137,33 +139,35 @@ func (c *Cluster) MultiSet(ps ...*KVPair) []string {
 			}
 		}
 	}
-	return ks
+	return ks, err
 }
 
-func (c *Cluster) MultiDel(ks ...string) []string {
+func (c *Cluster) MultiDel(ks ...string) (res []string, err error) {
 	if len(ks) == 0 {
-		return nil
+		return nil, nil
 	}
 	parts := c.locateKeys(ks...)
 	ch := make(chan int, len(parts))
 	for i, part := range parts {
 		go func(idx int, keys []string, shard *Client) {
-			success, err := shard.MultiDel(keys...)
-			if err == nil && success {
+			success, err2 := shard.MultiDel(keys...)
+			if err2 == nil && success {
 				ch <- idx
 			} else {
+				if err2 != nil {
+					err = err2
+				}
 				ch <- -1
 			}
 		}(i, part, c.shards[i])
 	}
 
-	var res []string
 	for i := 0; i < len(parts); i++ {
 		if id := <-ch; id >= 0 {
 			res = append(res, parts[id]...)
 		}
 	}
-	return res
+	return res, err
 }
 
 func (c *Cluster) Exists(key string) (bool, error) {

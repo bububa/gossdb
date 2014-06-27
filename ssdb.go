@@ -29,12 +29,12 @@ type Client struct {
 }
 
 type KVPair struct {
-	k string
-	v interface{}
+	Key   string
+	Value interface{}
 }
 
 func NewKVPair(k string, v interface{}) *KVPair {
-	return &KVPair{k: k, v: v}
+	return &KVPair{Key: k, Value: v}
 }
 
 func Connect(ip string, port int) (*Client, error) {
@@ -173,8 +173,8 @@ func (c *Client) MultiSet(pairs ...*KVPair) (bool, error) {
 	var args []interface{}
 	args = append(args, "multi_set")
 	for _, pair := range pairs {
-		args = append(args, pair.k)
-		args = append(args, pair.v)
+		args = append(args, pair.Key)
+		args = append(args, pair.Value)
 	}
 	resp, err := c.Do(0, args...)
 	if err != nil {

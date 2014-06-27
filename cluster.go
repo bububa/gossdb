@@ -56,7 +56,7 @@ func (c *Cluster) locateKeys(ks ...string) map[int][]string {
 func (c *Cluster) locatePairs(ps ...*KVPair) map[int][]*KVPair {
 	res := make(map[int][]*KVPair)
 	for _, p := range ps {
-		loc := int(c.locate([]byte(p.k)))
+		loc := int(c.locate([]byte(p.Key)))
 		res[loc] = append(res[loc], p)
 	}
 	return res
@@ -135,7 +135,7 @@ func (c *Cluster) MultiSet(ps ...*KVPair) (ks []string, err error) {
 	for i := 0; i < len(parts); i++ {
 		if id := <-ch; id >= 0 {
 			for _, p := range parts[id] {
-				ks = append(ks, p.k)
+				ks = append(ks, p.Key)
 			}
 		}
 	}

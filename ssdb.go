@@ -37,21 +37,16 @@ func NewKVPair(k string, v interface{}) *KVPair {
 	return &KVPair{Key: k, Value: v}
 }
 
-func Connect(ip string, port int) (*Client, error) {
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", ip, port))
-	if err != nil {
-		return nil, err
-	}
+func NewClient(sock *net.TCPConn, addr *net.TCPAddr) *Client {
+	return &Client{sock: sock, addr: addr, mutex: new(sync.Mutex)}
+}
+
+func Connect(addr *net.TCPAddr) (*Client, error) {
 	sock, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
 		return nil, err
 	}
-	//sock.SetKeepAlive(KEEPALIVE)
-	var c Client
-	c.sock = sock
-	c.addr = addr
-	c.mutex = new(sync.Mutex)
-	return &c, nil
+	return NewClient(sock, addr), nil
 }
 
 func (c *Client) lock() {
@@ -78,6 +73,17 @@ func (c *Client) Reconnect() error {
 }
 
 func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
+	if c.sock == nil {
+		c.lock()
+		sock, err := net.DialTCP("tcp", nil, c.addr)
+		if err != nil {
+			c.unlock()
+			return nil, err
+		}
+		c.sock = sock
+		c.unlock()
+	}
+
 	err := c.send(args)
 	if err != nil {
 		if !strings.Contains(fmt.Sprintf("%s", err), "bad request") && retries < MAX_RETRIES {

@@ -2,6 +2,8 @@ package gossdb
 
 import (
 	"crypto/sha1"
+	"fmt"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -18,10 +20,13 @@ func NewCluster(shardsAddr []string) (*Cluster, error) {
 		if err != nil {
 			return nil, err
 		}
-		s, err := Connect(h[0], int(port))
+		tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", h[0], port))
 		if err != nil {
-			c.Close()
 			return nil, err
+		}
+		s, err := Connect(tcpAddr)
+		if err != nil {
+			s = NewClient(nil, tcpAddr)
 		}
 		c.shards = append(c.shards, s)
 	}

@@ -63,6 +63,8 @@ func (c *Client) unlock() {
 }
 
 func (c *Client) Reconnect() error {
+	c.lock()
+	defer c.unlock()
 	c.Close()
 	sock, err := net.DialTCP("tcp", nil, c.addr)
 	if err != nil {
@@ -76,8 +78,6 @@ func (c *Client) Reconnect() error {
 }
 
 func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
-	c.lock()
-	defer c.unlock()
 	err := c.send(args)
 	if err != nil {
 		if !strings.Contains(fmt.Sprintf("%s", err), "bad request") && retries < MAX_RETRIES {
@@ -947,6 +947,8 @@ func (c *Client) send(args []interface{}) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteByte('\n')
+	c.lock()
+	defer c.unlock()
 	c.sock.SetWriteDeadline(time.Now().Add(TIMEOUT))
 	_, err := c.sock.Write(buf.Bytes())
 	return err
@@ -954,6 +956,8 @@ func (c *Client) send(args []interface{}) error {
 
 func (c *Client) recv() ([]string, error) {
 	var tmp [1024 * 128]byte
+	c.lock()
+	defer c.unlock()
 	c.sock.SetReadDeadline(time.Now().Add(TIMEOUT))
 	for {
 		n, err := c.sock.Read(tmp[0:])

@@ -179,8 +179,16 @@ func (c *Cluster) Exists(key string) (bool, error) {
 	return c.shards[c.locate([]byte(key))].Exists(key)
 }
 
+func (c *Cluster) Expire(key string, ttl int) (int, error) {
+	return c.shards[c.locate([]byte(key))].Expire(key, ttl)
+}
+
 func (c *Cluster) Incr(key string, num int) (int64, error) {
 	return c.shards[c.locate([]byte(key))].Incr(key, num)
+}
+
+func (c *Cluster) Decr(key string, num int) (int64, error) {
+	return c.shards[c.locate([]byte(key))].Decr(key, num)
 }
 
 func (c *Cluster) HSet(name string, key string, val string) (bool, error) {

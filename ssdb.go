@@ -94,6 +94,7 @@ func (c *Client) Do(retries int, args ...interface{}) ([]string, error) {
 		return nil, err
 	}
 	resp, err := c.recv()
+	fmt.Println(resp)
 	if err != nil && retries < MAX_RETRIES {
 		retries++
 		c.Reconnect()
@@ -259,6 +260,18 @@ func (c *Client) Exists(key string) (bool, error) {
 		return true, nil
 	}
 	return false, ErrBadResponse
+}
+
+func (c *Client) Expire(key string, ttl int) (int, error) {
+	resp, err := c.Do(0, "expire", key, ttl)
+	if err != nil {
+		return 0, err
+	}
+	if len(resp) == 2 && resp[0] == "ok" {
+		res, err := strconv.ParseInt(resp[1], 10, 64)
+		return int(res), err
+	}
+	return 0, ErrBadResponse
 }
 
 func (c *Client) Incr(key string, num int) (int64, error) {
